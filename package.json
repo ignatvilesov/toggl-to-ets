@@ -1,0 +1,21 @@
+{
+  "name": "toggl-to-ets",
+  "version": "0.1.0",
+  "description": "Converts Toggle Detailed report into ETS report",
+  "main": "index.js",
+  "keywords": [
+    "ets",
+    "toggle"
+  ],
+  "bin": {
+    "tte": "./bin/index.js"
+  },
+  "author": "Ignat Vilesov",
+  "license": "MIT",
+  "dependencies": {
+    "colors": "^1.2.1",
+    "minimist": "^1.2.0",
+    "request": "^2.85.0",
+    "request-promise-native": "^1.0.5"
+  }
+}
