@@ -2,6 +2,8 @@
 
 const colors = require('colors/safe');
 const request = require('request-promise-native');
+const exceljs = require('exceljs');
+const pathModule = require('path');
 
 colors.setTheme({
   silly: 'rainbow',
@@ -22,11 +24,12 @@ const {
   since,
   until,
   project,
+  ets,
 } = require('minimist')(process.argv.slice(2));
 
 Promise.resolve()
   .then(() => {
-    if (!token || !workspace || !since || !until) {
+    if (!token || !workspace || !since || !until || !ets) {
       throw new Error('Required arguments are not specified')
     }
   })
@@ -53,18 +56,24 @@ Promise.resolve()
       throw new Error('Response contains no data');
     }
 
-    const filteredData = project
-      ? data.data.filter(data => {
+    console.log(data);
+
+    const filteredData = project ?
+      data.data.filter(data => {
         return data.project === project;
-      })
-      : data.data;
+      }) :
+      data.data;
 
     const aggregatedMap = {};
 
     const aggregatedData = [];
 
     filteredData.forEach(data => {
-      const { description, dur, tags } = data;
+      const {
+        description,
+        dur,
+        tags
+      } = data;
 
       const item = aggregatedMap[data.description];
 
@@ -83,12 +92,62 @@ Promise.resolve()
       }
     });
 
-    return aggregatedData;
+    return filteredData;
   })
   .then((data) => {
-    // write data to excel
+    return new Promise((resolve, reject) => {
+      const workbook = new exceljs.Workbook();
 
-    console.log(data);
+      workbook.xlsx.readFile(ets)
+        .then(() => {
+          resolve([
+            workbook,
+            data
+          ])
+        })
+        .catch(reject);
+    });
+  })
+  .then(([workbook, data]) => {
+    const worksheet = workbook.getWorksheet(1);
+
+    data.forEach((task, taskIndex) => {
+      const rowIndex = taskIndex + 2;
+      const row = worksheet.getRow(rowIndex);
+
+      // Project-Task
+      row.getCell(1).value = `${task.project}.${task.tags[0]}`
+
+      // Effort
+      row.getCell(2).value = task.dur / 1000 / 60 / 60;
+
+      // Description
+      row.getCell(3).value = task.description;
+
+      // Started Date
+      row.getCell(4).value = new Date(task.start);
+
+      // Ended Date
+      row.getCell(5).value = new Date(task.end);
+
+      row.commit();
+    });
+
+    const parsedPath = pathModule.parse(ets);
+
+    const outputFile = pathModule.join(
+      parsedPath.dir,
+      `${parsedPath.name}_filled${parsedPath.ext}`,
+    );
+
+    return workbook.xlsx
+      .writeFile(outputFile)
+      .then(() => {
+        return outputFile;
+      });
+  })
+  .then((outputFile) => {
+    console.log(colors.info(`Toggl to ETS import completed. You can find the filled reports here: ${outputFile}`))
   })
   .catch((err) => {
     if (err && err.message) {
