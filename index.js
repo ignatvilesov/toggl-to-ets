@@ -20,62 +20,40 @@ colors.setTheme({
   error: 'red'
 });
 
-const {
+(async ({
   token,
   workspace,
   since,
   until,
   project,
   ets,
-} = require('minimist')(process.argv.slice(2));
-
-Promise.resolve()
-  .then(() => {
+}) => {
+  try {
     if (!token || !workspace || !since || !until || !ets) {
-      throw new Error('Required arguments are not specified')
+      throw new Error('Required arguments are not specified');
     }
-  })
-  .then(() => {
     const togglApi = new TogglApi();
 
-    return togglApi.request({
+    const tasks = await togglApi.request({
       token,
       since,
       until,
       workspace,
     });
-  })
-  .then((data) => {
-    if (!data) {
-      throw new Error('Response contains no data');
-    }
 
-    const filteredData = project ?
-      data.filter(task => {
+    const filteredTasks = project ?
+      tasks.filter(task => {
         return task.project === project;
       }) :
-      data || [];
+      tasks || [];
 
-    return filteredData;
-  })
-  .then((data) => {
-    return new Promise((resolve, reject) => {
-      const workbook = new exceljs.Workbook();
+    const workbook = new exceljs.Workbook();
 
-      workbook.xlsx.readFile(ets)
-        .then(() => {
-          resolve([
-            workbook,
-            data
-          ])
-        })
-        .catch(reject);
-    });
-  })
-  .then(([workbook, data]) => {
+    await workbook.xlsx.readFile(ets);
+
     const worksheet = workbook.getWorksheet(1);
 
-    data.forEach((task, taskIndex) => {
+    filteredTasks.forEach((task, taskIndex) => {
       const rowIndex = taskIndex + 2;
       const row = worksheet.getRow(rowIndex);
 
@@ -104,16 +82,10 @@ Promise.resolve()
       `${parsedPath.name}_filled${parsedPath.ext}`,
     );
 
-    return workbook.xlsx
-      .writeFile(outputFile)
-      .then(() => {
-        return outputFile;
-      });
-  })
-  .then((outputFile) => {
-    console.log(colors.info(`Toggl to ETS import completed. You can find the filled reports here: ${outputFile}`))
-  })
-  .catch((err) => {
+    await workbook.xlsx.writeFile(outputFile);
+
+    console.log(colors.info(`Toggl to ETS import completed. You can find the filled reports here: ${outputFile}`));
+  } catch (err) {
     if (err && err.message) {
       console.log(colors.error(err.message));
     } else if (err) {
@@ -123,4 +95,5 @@ Promise.resolve()
     }
 
     process.exit(1);
-  });
+  }
+})(require('minimist')(process.argv.slice(2)));
