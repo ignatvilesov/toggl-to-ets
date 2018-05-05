@@ -1,7 +1,7 @@
 {
   "name": "toggl-to-ets",
   "version": "0.1.0",
-  "description": "Converts Toggle Detailed report into ETS report",
+  "description": "Converts Toggle Detailed report to ETS report",
   "main": "index.js",
   "keywords": [
     "ets",
