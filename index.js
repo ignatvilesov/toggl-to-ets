@@ -5,6 +5,8 @@ const request = require('request-promise-native');
 const exceljs = require('exceljs');
 const pathModule = require('path');
 
+const TogglApi = require('./src/togglApi');
+
 colors.setTheme({
   silly: 'rainbow',
   input: 'grey',
@@ -34,63 +36,25 @@ Promise.resolve()
     }
   })
   .then(() => {
-    const options = {
-      uri: 'https://toggl.com/reports/api/v2/details',
-      qs: {
-        since,
-        until,
-        workspace_id: workspace,
-        user_agent: 'cli_toggle_to_ets'
-      },
-      auth: {
-        user: token,
-        pass: 'api_token'
-      },
-      json: true
-    }
+    const togglApi = new TogglApi();
 
-    return request(options);
+    return togglApi.request({
+      token,
+      since,
+      until,
+      workspace,
+    });
   })
   .then((data) => {
-    if (!data || !data.data) {
+    if (!data) {
       throw new Error('Response contains no data');
     }
 
-    console.log(data);
-
     const filteredData = project ?
-      data.data.filter(data => {
-        return data.project === project;
+      data.filter(task => {
+        return task.project === project;
       }) :
-      data.data;
-
-    const aggregatedMap = {};
-
-    const aggregatedData = [];
-
-    filteredData.forEach(data => {
-      const {
-        description,
-        dur,
-        tags
-      } = data;
-
-      const item = aggregatedMap[data.description];
-
-      if (item) {
-        item.dur += dur;
-      } else {
-        const newItem = {
-          description,
-          dur,
-          tag: tags[0],
-        };
-
-        aggregatedMap[data.description] = newItem;
-
-        aggregatedData.push(newItem);
-      }
-    });
+      data || [];
 
     return filteredData;
   })
