@@ -25,7 +25,7 @@ colors.setTheme({
   workspace,
   since,
   until,
-  project,
+  projects,
   ets,
 }) => {
   try {
@@ -41,11 +41,17 @@ colors.setTheme({
       workspace,
     });
 
-    const filteredTasks = project ?
-      tasks.filter(task => {
-        return task.project === project;
-      }) :
-      tasks || [];
+    let filteredTasks = tasks;
+
+    if (projects && projects.length > 0) {
+      const parsedProjects = projects.split(";");
+
+      filteredTasks = tasks.filter(task => {
+        return parsedProjects.some((projectName) => {
+          return task.project === projectName;
+        })
+      });
+    }
 
     const workbook = new exceljs.Workbook();
 
