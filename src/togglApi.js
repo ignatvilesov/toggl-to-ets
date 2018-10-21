@@ -3,14 +3,38 @@ class TogglApi {
         this.requestModule = require('request-promise-native');
     }
 
+    async requestWorkspaces(token) {
+        const options = {
+            uri: 'https://toggl.com/api/v8/workspaces',
+            auth: {
+                user: token,
+                pass: 'api_token'
+            }
+        }
+        
+        return this.requestModule(options);
+    }
+
+    async getWorkspaceId(token) {
+        try {
+            let res = await this.requestWorkspaces(token);
+            return JSON.parse(res)[0].id; // Takes id of the first user's workspace.
+        } catch (err) {
+            console.error("Used have no workspaces created. Please create workspace through Toggl UI.")
+            process.exit(1);
+        }
+    }
+
     async request(options) {
         let accumulatedData = [];
         let pageIndex = 1;
         let totalCount = 0;
+        let workspaceId = await this.getWorkspaceId(options.token);
 
         do {
             const data = await this.requestTogglApi({
                 ...options,
+                workspace: workspaceId,
                 page: pageIndex,
             });
 
