@@ -22,14 +22,13 @@ colors.setTheme({
 
 (async ({
   token,
-  workspace,
   since,
   until,
   projects,
   ets,
 }) => {
   try {
-    if (!token || !workspace || !since || !until || !ets) {
+    if (!token || !since || !until || !ets) {
       throw new Error('Required arguments are not specified');
     }
     const togglApi = new TogglApi();
@@ -38,7 +37,6 @@ colors.setTheme({
       token,
       since,
       until,
-      workspace,
     });
 
     let filteredTasks = tasks;
