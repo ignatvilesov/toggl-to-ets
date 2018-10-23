@@ -3,12 +3,7 @@
 const inquirer = require('inquirer');
 
 function buildWorkspaceNames(workspaces) {
-    let str = '';
-    let i = 1;
-    workspaces.forEach(element => {
-        str += `\n${i++}: ${element.name}`
-    });
-    return str;
+    return workspaces.reduce((str, workspace, index) => str += `\n${++index} ${workspace.name}`, ``);
 }
 
 module.exports = {
