@@ -1,6 +1,8 @@
 class TogglApi {
+
     constructor() {
         this.requestModule = require('request-promise-native');
+        this.cliClient = require('./cliClient')
     }
 
     async requestWorkspaces(token) {
@@ -18,9 +20,14 @@ class TogglApi {
     async getWorkspaceId(token) {
         try {
             let res = await this.requestWorkspaces(token);
-            return JSON.parse(res)[0].id; // Takes id of the first user's workspace.
+            let workspaces = JSON.parse(res);
+            if (workspaces.length > 1) {
+                let res = await this.cliClient.askWorkspaceNumber(workspaces);
+                return workspaces[res.workspaceNumber - 1].id;
+            }
+            return workspaces[0].id;
         } catch (err) {
-            console.error("Used have no workspaces created. Please create workspace through Toggl UI.")
+            console.error(err.message || err)
             process.exit(1);
         }
     }
