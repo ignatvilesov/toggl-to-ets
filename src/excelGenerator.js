@@ -12,11 +12,9 @@ class ExcelGenerator {
 
         const worksheet = workbook.getWorksheet(1);
 
-        let rowIndex = 0;
+        let rowIndex = 2; // We start from the second row because the first is header
 
         for (let task of tasks) {
-            rowIndex += 2;
-
             const row = worksheet.getRow(rowIndex);
 
             // Project-Task
@@ -35,6 +33,8 @@ class ExcelGenerator {
             row.getCell(5).value = task.endDate;
 
             row.commit();
+
+            rowIndex++;
         }
 
         await workbook.xlsx.writeFile(outputFilePath);
