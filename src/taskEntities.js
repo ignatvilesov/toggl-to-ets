@@ -30,9 +30,13 @@ class TaskEntities {
 
             unconsideredDurationSum += originalDuration - flooredDuration;
 
+            const name = task.tags && task.tags[0] ?
+                `${task.project}.${task.tags[0]}` :
+                task.project;
+
             return {
                 ...task,
-                name: `${task.project}.${task.tags[0]}`, // we consider the first tag only
+                name,
                 duration: flooredDuration,
                 startDate: new Date(task.start),
                 endDate: new Date(task.end),
@@ -41,7 +45,7 @@ class TaskEntities {
 
         let flooredUnconsideredDuration = this.floor(unconsideredDurationSum);
 
-        // TODO: most likely we can make it with O(n) but no thoughts at 12.21 AM
+        // TODO: most likely we make make it with O(n) but no thoughts at 12.21 AM
         for (let taskIndex = 0; flooredUnconsideredDuration > 0; taskIndex++) {
             if (taskIndex >= this.tasks.length) {
                 taskIndex = 0;
