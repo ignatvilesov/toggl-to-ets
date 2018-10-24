@@ -3,38 +3,29 @@ const exceljs = require('exceljs');
 class ExcelGenerator {
     async generate({
         tasks,
-        inputFilePath,
         outputFilePath
     }) {
         const workbook = new exceljs.Workbook();
 
-        await workbook.xlsx.readFile(inputFilePath); // TODO: generate xlsx on fly
+        const worksheet = workbook.addWorksheet('Efforts');
 
-        const worksheet = workbook.getWorksheet(1);
-
-        let rowIndex = 2; // We start from the second row because the first is header
+        // Adds a header
+        worksheet.addRow([
+            'Project-Task',
+            'Effort',
+            'Description',
+            'Started Date',
+            'Completion Date',
+        ])
 
         for (let task of tasks) {
-            const row = worksheet.getRow(rowIndex);
-
-            // Project-Task
-            row.getCell(1).value = task.name;
-
-            // Effort
-            row.getCell(2).value = task.duration
-
-            // Description
-            row.getCell(3).value = task.description;
-
-            // Started Date
-            row.getCell(4).value = task.startDate;
-
-            // Ended Date
-            row.getCell(5).value = task.endDate;
-
-            row.commit();
-
-            rowIndex++;
+            worksheet.addRow([
+                task.name,
+                task.duration,
+                task.description,
+                task.startDate,
+                task.endDate,
+            ]);
         }
 
         await workbook.xlsx.writeFile(outputFilePath);

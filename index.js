@@ -25,10 +25,9 @@ colors.setTheme({
   since,
   until,
   projects,
-  ets,
 }) => {
   try {
-    if (!token || !since || !until || !ets) {
+    if (!token || !since || !until) {
       throw new Error('Required arguments are not specified');
     }
 
@@ -43,8 +42,8 @@ colors.setTheme({
     const taskEntities = new TaskEntities(rawTasksFromTogglApi);
 
     const parsedProjects = projects && projects.length > 0
-     ? projects.split(';')
-     : [];
+      ? projects.split(';')
+      : [];
 
     taskEntities
       .filterByProjectNames(parsedProjects)
@@ -52,17 +51,14 @@ colors.setTheme({
 
     const excelGenerator = new ExcelGenerator();
 
-    const parsedPath = pathModule.parse(ets);
-
     const outputFilePath = pathModule.join(
-      parsedPath.dir,
-      `${parsedPath.name}_filled${parsedPath.ext}`,
+      process.cwd(),
+      'ets_filled.xlsx'
     );
 
     await excelGenerator.generate({
       outputFilePath,
       tasks: taskEntities,
-      inputFilePath: ets,
     });
 
     console.log(colors.info(`Toggl to ETS import completed. You can find the filled reports here: ${outputFilePath}`));
