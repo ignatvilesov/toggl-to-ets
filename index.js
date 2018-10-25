@@ -1,11 +1,11 @@
 'use strict';
 
 const colors = require('colors/safe');
-const request = require('request-promise-native');
-const exceljs = require('exceljs');
 const pathModule = require('path');
 
 const TogglApi = require('./src/togglApi');
+const TaskEntities = require('./src/taskEntities');
+const ExcelGenerator = require('./src/excelGenerator');
 
 colors.setTheme({
   silly: 'rainbow',
@@ -25,70 +25,43 @@ colors.setTheme({
   since,
   until,
   projects,
-  ets,
 }) => {
   try {
-    if (!token || !since || !until || !ets) {
+    if (!token || !since || !until) {
       throw new Error('Required arguments are not specified');
     }
+
     const togglApi = new TogglApi();
 
-    const tasks = await togglApi.request({
+    const rawTasksFromTogglApi = await togglApi.getTasks({
       token,
       since,
       until,
     });
 
-    let filteredTasks = tasks;
+    const taskEntities = new TaskEntities(rawTasksFromTogglApi);
 
-    if (projects && projects.length > 0) {
-      const parsedProjects = projects.split(";");
+    const parsedProjects = projects && projects.length > 0
+      ? projects.split(';')
+      : [];
 
-      filteredTasks = tasks.filter(task => {
-        return parsedProjects.some((projectName) => {
-          return task.project === projectName;
-        })
-      });
-    }
+    taskEntities
+      .filterByProjectNames(parsedProjects)
+      .balance();
 
-    const workbook = new exceljs.Workbook();
+    const excelGenerator = new ExcelGenerator();
 
-    await workbook.xlsx.readFile(ets);
-
-    const worksheet = workbook.getWorksheet(1);
-
-    filteredTasks.forEach((task, taskIndex) => {
-      const rowIndex = taskIndex + 2;
-      const row = worksheet.getRow(rowIndex);
-
-      // Project-Task
-      row.getCell(1).value = `${task.project}.${task.tags[0]}`
-
-      // Effort
-      row.getCell(2).value = task.dur / 1000 / 60 / 60;
-
-      // Description
-      row.getCell(3).value = task.description;
-
-      // Started Date
-      row.getCell(4).value = new Date(task.start);
-
-      // Ended Date
-      row.getCell(5).value = new Date(task.end);
-
-      row.commit();
-    });
-
-    const parsedPath = pathModule.parse(ets);
-
-    const outputFile = pathModule.join(
-      parsedPath.dir,
-      `${parsedPath.name}_filled${parsedPath.ext}`,
+    const outputFilePath = pathModule.join(
+      process.cwd(),
+      'ets_filled.xlsx'
     );
 
-    await workbook.xlsx.writeFile(outputFile);
+    await excelGenerator.generate({
+      outputFilePath,
+      tasks: taskEntities,
+    });
 
-    console.log(colors.info(`Toggl to ETS import completed. You can find the filled reports here: ${outputFile}`));
+    console.log(colors.info(`Toggl to ETS import completed. You can find the filled reports here: ${outputFilePath}`));
   } catch (err) {
     if (err && err.message) {
       console.log(colors.error(err.message));

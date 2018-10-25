@@ -1,10 +1,7 @@
+const requestModule = require('request-promise-native');
+const cliClient = require('./cliClient');
+
 class TogglApi {
-
-    constructor() {
-        this.requestModule = require('request-promise-native');
-        this.cliClient = require('./cliClient')
-    }
-
     async requestWorkspaces(token) {
         const options = {
             uri: 'https://toggl.com/api/v8/workspaces',
@@ -13,26 +10,23 @@ class TogglApi {
                 pass: 'api_token'
             }
         }
-        
-        return this.requestModule(options);
+
+        return requestModule(options);
     }
 
     async getWorkspaceId(token) {
-        try {
-            let res = await this.requestWorkspaces(token);
-            let workspaces = JSON.parse(res);
-            if (workspaces.length > 1) {
-                let res = await this.cliClient.askWorkspaceNumber(workspaces);
-                return workspaces[res.workspaceNumber - 1].id;
-            }
-            return workspaces[0].id;
-        } catch (err) {
-            console.error(err.message || err)
-            process.exit(1);
+        let res = await this.requestWorkspaces(token);
+        let workspaces = JSON.parse(res);
+
+        if (workspaces.length > 1) {
+            let res = await cliClient.askWorkspaceNumber(workspaces);
+            return workspaces[res.workspaceNumber - 1].id;
         }
+
+        return workspaces[0].id;
     }
 
-    async request(options) {
+    async getTasks(options) {
         let accumulatedData = [];
         let pageIndex = 1;
         let totalCount = 0;
@@ -82,7 +76,7 @@ class TogglApi {
             json: true
         };
 
-        return this.requestModule(options);
+        return requestModule(options);
     }
 }
 

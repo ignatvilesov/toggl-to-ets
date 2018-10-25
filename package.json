@@ -1,6 +1,6 @@
 {
   "name": "toggl-to-ets",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Converts Toggle Detailed report to ETS report",
   "main": "index.js",
   "keywords": [
@@ -13,11 +13,12 @@
   "author": "Ignat Vilesov",
   "license": "MIT",
   "dependencies": {
-    "colors": "^1.2.1",
-    "exceljs": "^1.4.5",
+    "colors": "^1.3.2",
+    "exceljs": "^1.6.2",
     "inquirer": "^6.2.0",
+    "lodash.floor": "^4.0.4",
     "minimist": "^1.2.0",
-    "request": "^2.85.0",
+    "request": "^2.88.0",
     "request-promise-native": "^1.0.5"
   }
 }
