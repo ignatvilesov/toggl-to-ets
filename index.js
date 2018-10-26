@@ -27,16 +27,23 @@ colors.setTheme({
   projects,
 }) => {
   try {
-    if (!token || !since || !until) {
-      throw new Error('Required arguments are not specified');
+    if (!token) {
+      throw new Error('Token isn\'t specified. To get token go to Profile Settings section in Toggl UI.');
     }
 
     const togglApi = new TogglApi();
 
+    var date = new Date();
+    var sinceDate = since || new Date(date.getFullYear(), date.getMonth(), 2).toISOString().slice(0,10); // returns string like "YYYY-MM-01"
+    var untilDate = until || new Date(date.getFullYear(), date.getMonth() + 1).toISOString().slice(0,10); // returns string like "YYYY-MM-31"
+
+    console.log(sinceDate)
+    console.log(untilDate)
+
     const rawTasksFromTogglApi = await togglApi.getTasks({
       token,
-      since,
-      until,
+      sinceDate,
+      untilDate,
     });
 
     const taskEntities = new TaskEntities(rawTasksFromTogglApi);
