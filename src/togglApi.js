@@ -1,6 +1,8 @@
 const requestModule = require('request-promise-native');
 const cliClient = require('./cliClient');
 
+const formatDate = require('./dateUtils').formatDate;
+
 class TogglApi {
     async requestWorkspaces(token) {
         const options = {
@@ -33,8 +35,8 @@ class TogglApi {
     }) {
         const workspace = await this.getWorkspaceId(token);
 
-        const since = this.formatDate(startDate);
-        const until = this.formatDate(endDate);
+        const since = formatDate(startDate);
+        const until = formatDate(endDate);
 
         let accumulatedData = [];
         let pageIndex = 1;
@@ -87,14 +89,6 @@ class TogglApi {
         };
 
         return requestModule(options);
-    }
-
-    /**
-     * Returns formatted date as "YYYY-MM-DD"
-     * @param {Date} date 
-     */
-    formatDate(date) {
-        return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
     }
 }
 

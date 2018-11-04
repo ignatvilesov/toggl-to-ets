@@ -1,9 +1,11 @@
-const lodashFloor = require('lodash.floor');
+const _ = require('lodash');
+
+const formatDate = require('./dateUtils').formatDate;
 
 class TaskEntities {
     constructor(tasks) {
         this.tasks = tasks || [];
-        this.step = 0.1; // This can divide any values (0, 0.1, 5.4, etc.)
+        this.step = 0.1; // Min duration in ETS
 
         this.iteratorIndex = 0;
     }
@@ -17,50 +19,99 @@ class TaskEntities {
             });
         }
 
-        return this;
+        return this.tasks;
     }
 
     balance() {
-        let unconsideredDurationSum = 0;
+        const balancedTasks = [];
 
-        this.tasks = this.tasks.map((task) => {
-            const originalDuration = task.dur / 1000 / 60 / 60;
+        const groupedTasks = this.getGroupedTasks();
 
-            const flooredDuration = this.floor(originalDuration);
+        let unconsideredDurationAfterSpread = 0;
 
-            unconsideredDurationSum += originalDuration - flooredDuration;
+        Object.keys(groupedTasks)
+            .forEach((taskGroup) => {
+                let unconsideredDurationSumForTaskGroup = 0;
 
-            const name = task.tags && task.tags[0] ?
-                `${task.project}.${task.tags[0]}` :
-                task.project;
+                const tasks = groupedTasks[taskGroup].map((task) => {
+                    const originalDuration = task.dur / 1000 / 60 / 60;
 
-            return {
-                ...task,
-                name,
-                duration: flooredDuration,
-                startDate: new Date(task.start),
-                endDate: new Date(task.end),
-            };
+                    const flooredDuration = this.floor(originalDuration);
+
+                    unconsideredDurationSumForTaskGroup += originalDuration - flooredDuration;
+
+                    const name = task.tags && task.tags[0] ?
+                        `${task.project}.${task.tags[0]}` :
+                        task.project;
+
+                    return {
+                        ...task,
+                        name,
+                        duration: flooredDuration,
+                        startDate: new Date(task.start),
+                        endDate: new Date(task.end),
+                    };
+                });
+
+                const sortedTasks = tasks
+                    .slice()
+                    .sort((a, b) => a.duration - b.duration);
+
+                unconsideredDurationAfterSpread += this.spreadDuration(
+                    sortedTasks,
+                    unconsideredDurationSumForTaskGroup
+                );
+
+                balancedTasks.push(...tasks);
+            });
+
+        if (unconsideredDurationAfterSpread >= this.step) {
+            this.spreadDuration(balancedTasks, unconsideredDurationAfterSpread);
+        }
+
+        const groupedByDuration = _.groupBy(balancedTasks, (task) => {
+            return task.duration >= this.step;
         });
 
-        let flooredUnconsideredDuration = this.floor(unconsideredDurationSum);
+        this.tasks = groupedByDuration[true] || [];
 
-        // TODO: most likely we make make it with O(n) but no thoughts at 12.21 AM
-        for (let taskIndex = 0; flooredUnconsideredDuration > 0; taskIndex++) {
-            if (taskIndex >= this.tasks.length) {
+        return groupedByDuration[false] || [];
+    }
+
+    floor(value) {
+        return _.floor(value, 1);
+    }
+
+    getGroupedTasks() {
+        return _.groupBy(this.tasks, (task) => {
+            const formattedDate = formatDate(new Date(task.start));
+
+            return `${task.client}-${task.project}-${formattedDate}`;
+        });
+    }
+
+    /**
+     * Spreads duration over tasks.
+     * 
+     * It has side effect due to performance reasons.
+     */
+    spreadDuration(tasks, unconsideredDuration) {
+        let flooredUnconsideredDuration = this.floor(unconsideredDuration);
+        let unconsideredDurationCopied = unconsideredDuration;
+
+        // this loop below has side effects due to performance optimizations
+        for (let taskIndex = 0; flooredUnconsideredDuration >= this.step; taskIndex++) {
+            if (taskIndex >= tasks.length) {
                 taskIndex = 0;
             }
 
-            this.tasks[taskIndex].duration += this.step;
+            tasks[taskIndex].duration += this.step;
 
             flooredUnconsideredDuration -= this.step;
+            unconsideredDurationCopied -= this.step;
         }
 
-        return this;
-    }
-
-    floor(value, precision = 1) {
-        return lodashFloor(value, precision);
+        return unconsideredDurationCopied;
     }
 
     [Symbol.iterator]() {

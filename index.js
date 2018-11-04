@@ -7,6 +7,8 @@ const TogglApi = require('./src/togglApi');
 const TaskEntities = require('./src/taskEntities');
 const ExcelGenerator = require('./src/excelGenerator');
 
+const formatDate = require('./src/dateUtils').formatDate;
+
 colors.setTheme({
   silly: 'rainbow',
   input: 'grey',
@@ -35,13 +37,13 @@ colors.setTheme({
 
     const currentDate = new Date();
 
-    const startDate = since
-      ? new Date(since)
-      : new Date(currentDate.getFullYear(), currentDate.getMonth(), 1); // Start of month
+    const startDate = since ?
+      new Date(since) :
+      new Date(currentDate.getFullYear(), currentDate.getMonth(), 1); // Start of month
 
-    const endDate = until
-      ? new Date(until)
-      : new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0); // End of month
+    const endDate = until ?
+      new Date(until) :
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0); // End of month
 
     const rawTasksFromTogglApi = await togglApi.getTasks({
       token,
@@ -51,13 +53,20 @@ colors.setTheme({
 
     const taskEntities = new TaskEntities(rawTasksFromTogglApi);
 
-    const parsedProjects = projects && projects.length > 0
-      ? projects.split(';')
-      : [];
+    const parsedProjects = projects && projects.length > 0 ?
+      projects.split(';') : [];
 
-    taskEntities
-      .filterByProjectNames(parsedProjects)
-      .balance();
+    taskEntities.filterByProjectNames(parsedProjects);
+
+    const unconsideredTasks = taskEntities.balance();
+
+    if (unconsideredTasks && unconsideredTasks.length) {
+      console.log(colors.warn(`These tasks can't be included into an ETS report because their duration is too short`));
+
+      unconsideredTasks.forEach((task) => {
+        console.log(color.info(`${task.client} => ${task.project} => [${formatDate(task.startDate)}, ${formatDate(task.endDate)}] => ${task.description}`));
+      });
+    }
 
     const excelGenerator = new ExcelGenerator();
 
