@@ -26,16 +26,26 @@ class TogglApi {
         return workspaces[0].id;
     }
 
-    async getTasks(options) {
+    async getTasks({
+        token,
+        startDate,
+        endDate,
+    }) {
+        const workspace = await this.getWorkspaceId(token);
+
+        const since = this.formatDate(startDate);
+        const until = this.formatDate(endDate);
+
         let accumulatedData = [];
         let pageIndex = 1;
         let totalCount = 0;
-        let workspaceId = await this.getWorkspaceId(options.token);
 
         do {
             const data = await this.requestTogglApi({
-                ...options,
-                workspace: workspaceId,
+                token,
+                since,
+                until,
+                workspace,
                 page: pageIndex,
             });
 
@@ -43,7 +53,7 @@ class TogglApi {
 
             accumulatedData = accumulatedData.concat(data.data || []);
 
-            if (totalCount === data.total_count) {
+            if (totalCount >= data.total_count) {
                 break;
             }
 
@@ -77,6 +87,14 @@ class TogglApi {
         };
 
         return requestModule(options);
+    }
+
+    /**
+     * Returns formatted date as "YYYY-MM-DD"
+     * @param {Date} date 
+     */
+    formatDate(date) {
+        return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`
     }
 }
 

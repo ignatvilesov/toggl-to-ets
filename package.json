@@ -10,7 +10,6 @@
   "bin": {
     "tte": "./bin/index.js"
   },
-  "author": "Ignat Vilesov",
   "license": "MIT",
   "dependencies": {
     "colors": "^1.3.2",
@@ -20,5 +19,8 @@
     "minimist": "^1.2.0",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5"
+  },
+  "scripts": {
+    "start": "node ./bin/index.js"
   }
 }
