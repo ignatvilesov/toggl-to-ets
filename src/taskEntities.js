@@ -10,18 +10,6 @@ class TaskEntities {
         this.iteratorIndex = 0;
     }
 
-    filterByProjectNames(projectNames) {
-        if (projectNames && projectNames.length) {
-            this.tasks = this.tasks.filter(task => {
-                return projectNames.some((projectName) => {
-                    return task.project === projectName;
-                });
-            });
-        }
-
-        return this.tasks;
-    }
-
     balance() {
         const balancedTasks = [];
 

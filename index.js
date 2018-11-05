@@ -26,14 +26,15 @@ colors.setTheme({
   token,
   since,
   until,
-  projects,
 }) => {
   try {
     if (!token) {
       throw new Error(`Token isn't specified. To get token go to Profile Settings section in Toggl UI.`);
     }
 
-    const togglApi = new TogglApi();
+    const togglApi = new TogglApi({
+      token,
+    });
 
     const currentDate = new Date();
 
@@ -46,17 +47,11 @@ colors.setTheme({
       new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0); // End of month
 
     const rawTasksFromTogglApi = await togglApi.getTasks({
-      token,
       startDate,
       endDate,
     });
 
     const taskEntities = new TaskEntities(rawTasksFromTogglApi);
-
-    const parsedProjects = projects && projects.length > 0 ?
-      projects.split(';') : [];
-
-    taskEntities.filterByProjectNames(parsedProjects);
 
     const unconsideredTasks = taskEntities.balance();
 
