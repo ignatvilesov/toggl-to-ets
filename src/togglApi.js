@@ -4,36 +4,69 @@ const cliClient = require('./cliClient');
 const formatDate = require('./dateUtils').formatDate;
 
 class TogglApi {
-    async requestWorkspaces(token) {
-        const options = {
-            uri: 'https://toggl.com/api/v8/workspaces',
-            auth: {
-                user: token,
-                pass: 'api_token'
-            }
-        }
-
-        return requestModule(options);
+    constructor({
+        token
+    }) {
+        this.token = token;
     }
 
-    async getWorkspaceId(token) {
-        let res = await this.requestWorkspaces(token);
-        let workspaces = JSON.parse(res);
+    async getWorkspaceId() {
+        const workspaces = await this.requestWorkspaces();
 
-        if (workspaces.length > 1) {
-            let res = await cliClient.askWorkspaceNumber(workspaces);
-            return workspaces[res.workspaceNumber - 1].id;
+        const workspaceIdToNameMatcher = {};
+
+        const workspaceNames = workspaces.map((workspace) => {
+            const {
+                id,
+                name,
+            } = workspace;
+
+            workspaceIdToNameMatcher[name] = id;
+
+            return name;
+        })
+
+        if (workspaces && workspaces.length > 1) {
+            const selectedWorkspace = await cliClient.askList(
+                workspaceNames,
+                'You have several workspaces. Please select the required workspace to generate report from:'
+            );
+
+            return workspaceIdToNameMatcher[selectedWorkspace];
         }
 
         return workspaces[0].id;
     }
 
+    async getProjects(workspace) {
+        const projects = await this.requestProjects(workspace);
+
+        const projectNames = projects.map((project) => {
+            return project.name
+        });
+
+        if (projectNames && projectNames.length > 1) {
+            const selectedProjects = await cliClient.askCheckbox(
+                projectNames,
+                'What projects should be included?'
+            );
+
+            if (selectedProjects && selectedProjects.length) {
+                return selectedProjects;
+            } else {
+                return projectNames;
+            }
+        }
+
+        return projectNames;
+    }
+
     async getTasks({
-        token,
         startDate,
         endDate,
     }) {
-        const workspace = await this.getWorkspaceId(token);
+        const workspace = await this.getWorkspaceId();
+        const projects = await this.getProjects(workspace);
 
         const since = formatDate(startDate);
         const until = formatDate(endDate);
@@ -43,8 +76,7 @@ class TogglApi {
         let totalCount = 0;
 
         do {
-            const data = await this.requestTogglApi({
-                token,
+            const data = await this.requestDetailedReport({
                 since,
                 until,
                 workspace,
@@ -62,27 +94,60 @@ class TogglApi {
             pageIndex++;
         } while (true);
 
-        return accumulatedData;
+        return this.filterByProjectNames(accumulatedData, projects);
     }
 
-    requestTogglApi({
+    filterByProjectNames(tasks, projectNames) {
+        if (projectNames &&
+            projectNames.length &&
+            tasks &&
+            tasks.length
+        ) {
+            return tasks.filter(task => {
+                return projectNames.some((projectName) => {
+                    return task.project === projectName;
+                });
+            });
+        }
+
+        return tasks;
+    }
+
+    async requestDetailedReport({
         since,
         until,
         workspace,
-        token,
         page,
     }) {
-        const options = {
-            uri: 'https://toggl.com/reports/api/v2/details',
-            qs: {
+        return this.requestTogglApi(
+            'https://toggl.com/reports/api/v2/details', {
                 page,
                 since,
                 until,
                 workspace_id: workspace,
-                user_agent: 'cli_toggle_to_ets'
+            }
+        );
+    }
+
+    async requestWorkspaces() {
+        return this.requestTogglApi('https://toggl.com/api/v8/workspaces');
+    }
+
+    async requestProjects(workspace) {
+        const uri = `https://www.toggl.com/api/v8/workspaces/${workspace}/projects`
+
+        return this.requestTogglApi(uri);
+    }
+
+    async requestTogglApi(uri, queryOptions = {}) {
+        const options = {
+            uri,
+            qs: {
+                user_agent: 'cli_toggle_to_ets',
+                ...queryOptions,
             },
             auth: {
-                user: token,
+                user: this.token,
                 pass: 'api_token'
             },
             json: true
