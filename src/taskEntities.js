@@ -21,25 +21,40 @@ class TaskEntities {
             .forEach((taskGroup) => {
                 let unconsideredDurationSumForTaskGroup = 0;
 
-                const tasks = groupedTasks[taskGroup].map((task) => {
-                    const originalDuration = task.dur / 1000 / 60 / 60;
+                const tasks = groupedTasks[taskGroup]
+                    .reduce((tasks, task) => {
+                        const foundTask = this.getTaskByDescription(tasks, task.description);
 
-                    const flooredDuration = this.floor(originalDuration);
+                        if (foundTask) {
+                            foundTask.dur += task.dur;
 
-                    unconsideredDurationSumForTaskGroup += originalDuration - flooredDuration;
+                            return tasks;
+                        }
 
-                    const name = task.tags && task.tags[0] ?
-                        `${task.project}.${task.tags[0]}` :
-                        task.project;
+                        return [
+                            ...tasks,
+                            task,
+                        ];
+                    }, [])
+                    .map((task) => {
+                        const originalDuration = task.dur / 1000 / 60 / 60;
 
-                    return {
-                        ...task,
-                        name,
-                        duration: flooredDuration,
-                        startDate: new Date(task.start),
-                        endDate: new Date(task.end),
-                    };
-                });
+                        const flooredDuration = this.floor(originalDuration);
+
+                        unconsideredDurationSumForTaskGroup += originalDuration - flooredDuration;
+
+                        const name = task.tags && task.tags[0] ?
+                            `${task.project}.${task.tags[0]}` :
+                            task.project;
+
+                        return {
+                            ...task,
+                            name,
+                            duration: flooredDuration,
+                            startDate: new Date(task.start),
+                            endDate: new Date(task.end),
+                        };
+                    });
 
                 const sortedTasks = tasks
                     .slice()
@@ -76,6 +91,16 @@ class TaskEntities {
 
             return `${task.client}-${task.project}-${formattedDate}`;
         });
+    }
+
+    getTaskByDescription(tasks, description) {
+        for (let task of tasks) {
+            if (task && task.description === description) {
+                return task;
+            }
+        }
+
+        return null;
     }
 
     /**
