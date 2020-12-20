@@ -1,116 +1,111 @@
-const exceljs = require('exceljs');
+import exceljs from "exceljs";
 
-class ExcelGenerator {
-    async generate({
-        tasks,
-        outputFilePath
-    }) {
-        const workbook = new exceljs.Workbook();
+export class ExcelGenerator {
+  async generate({ tasks, outputFilePath }) {
+    const workbook = new exceljs.Workbook();
 
-        const worksheet = workbook.addWorksheet('Efforts');
+    const worksheet = workbook.addWorksheet("Efforts");
 
-        // Adds a header
-        worksheet.addRow([
-            'Project-Task',
-            'Effort',
-            'Description',
-            'Started Date',
-            'Completion Date',
-        ]);
+    // Adds a header
+    worksheet.addRow([
+      "Project-Task",
+      "Effort",
+      "Description",
+      "Started Date",
+      "Completion Date",
+    ]);
 
-        worksheet.getColumn(1).width = 24;
-        worksheet.getColumn(2).width = 12;
-        worksheet.getColumn(3).width = 78;
-        worksheet.getColumn(4).width = 16;
-        worksheet.getColumn(5).width = 16;
+    worksheet.getColumn(1).width = 24;
+    worksheet.getColumn(2).width = 12;
+    worksheet.getColumn(3).width = 78;
+    worksheet.getColumn(4).width = 16;
+    worksheet.getColumn(5).width = 16;
 
-        const headerRow = worksheet.lastRow;
+    const headerRow = worksheet.lastRow;
 
-        headerRow.height = 25;
+    headerRow.height = 25;
 
-        [
-            worksheet.getCell('A1'),
-            worksheet.getCell('B1'),
-            worksheet.getCell('C1'),
-            worksheet.getCell('D1'),
-            worksheet.getCell('E1'),
-        ].forEach((element) => {
-            this.applyHeaderStyles(element);
-        });
+    [
+      worksheet.getCell("A1"),
+      worksheet.getCell("B1"),
+      worksheet.getCell("C1"),
+      worksheet.getCell("D1"),
+      worksheet.getCell("E1"),
+    ].forEach((element) => {
+      this.applyHeaderStyles(element);
+    });
 
-        for (let task of tasks) {
-            worksheet.addRow([
-                task.name,
-                task.duration,
-                task.description,
-                task.startDate,
-                task.endDate,
-            ]);
+    for (let task of tasks) {
+      worksheet.addRow([
+        task.name,
+        task.duration,
+        task.description,
+        task.startDate,
+        task.endDate,
+      ]);
 
-            worksheet.lastRow.font = {
-                name: 'Tahoma',
-                color: {
-                    argb: '00000000'
-                },
-                family: 2,
-                size: 10,
-            };
-        }
-
-        await workbook.xlsx.writeFile(outputFilePath);
+      worksheet.lastRow.font = {
+        name: "Tahoma",
+        color: {
+          argb: "00000000",
+        },
+        family: 2,
+        size: 10,
+      };
     }
 
-    applyHeaderStyles(element) {
-        element.font = {
-            name: 'Tahoma',
-            color: {
-                argb: '00FFFFFF'
-            },
-            family: 2,
-            size: 8,
-            bold: true,
-        };
+    await workbook.xlsx.writeFile(outputFilePath);
+  }
 
-        element.alignment = {
-            vertical: 'middle',
-            horizontal: 'center'
-        };
+  applyHeaderStyles(element) {
+    element.font = {
+      name: "Tahoma",
+      color: {
+        argb: "00FFFFFF",
+      },
+      family: 2,
+      size: 8,
+      bold: true,
+    };
 
-        element.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: {
-                argb: '00130082'
-            }
-        };
+    element.alignment = {
+      vertical: "middle",
+      horizontal: "center",
+    };
 
-        element.border = {
-            top: {
-                style: 'thin',
-                color: {
-                    argb: '00FFFFFF'
-                }
-            },
-            left: {
-                style: 'thin',
-                color: {
-                    argb: '00FFFFFF'
-                }
-            },
-            bottom: {
-                style: 'thin',
-                color: {
-                    argb: '00FFFFFF'
-                }
-            },
-            right: {
-                style: 'thin',
-                color: {
-                    argb: '00FFFFFF'
-                }
-            }
-        };
-    }
+    element.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: {
+        argb: "00130082",
+      },
+    };
+
+    element.border = {
+      top: {
+        style: "thin",
+        color: {
+          argb: "00FFFFFF",
+        },
+      },
+      left: {
+        style: "thin",
+        color: {
+          argb: "00FFFFFF",
+        },
+      },
+      bottom: {
+        style: "thin",
+        color: {
+          argb: "00FFFFFF",
+        },
+      },
+      right: {
+        style: "thin",
+        color: {
+          argb: "00FFFFFF",
+        },
+      },
+    };
+  }
 }
-
-module.exports = ExcelGenerator;

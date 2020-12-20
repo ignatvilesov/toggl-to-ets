@@ -1,160 +1,139 @@
-const requestModule = require('request-promise-native');
-const cliClient = require('./cliClient');
+import request from "request-promise-native";
 
-const formatDate = require('./dateUtils').formatDate;
+import { askCheckbox, askList } from "./cliClient.js";
+import { formatDate } from "./dateUtils.js";
 
-class TogglApi {
-    constructor({
-        token
-    }) {
-        this.token = token;
+export class TogglApi {
+  constructor({ token }) {
+    this.token = token;
+  }
+
+  async getWorkspaceId() {
+    const workspaces = await this.requestWorkspaces();
+
+    const workspaceIdToNameMatcher = {};
+
+    const workspaceNames = workspaces.map((workspace) => {
+      const { id, name } = workspace;
+
+      workspaceIdToNameMatcher[name] = id;
+
+      return name;
+    });
+
+    if (workspaces && workspaces.length > 1) {
+      const selectedWorkspace = await askList(
+        workspaceNames,
+        "You have several workspaces. Please select the required workspace to generate report from:"
+      );
+
+      return workspaceIdToNameMatcher[selectedWorkspace];
     }
 
-    async getWorkspaceId() {
-        const workspaces = await this.requestWorkspaces();
+    return workspaces[0].id;
+  }
 
-        const workspaceIdToNameMatcher = {};
+  async getProjects(workspace) {
+    const projects = await this.requestProjects(workspace);
 
-        const workspaceNames = workspaces.map((workspace) => {
-            const {
-                id,
-                name,
-            } = workspace;
+    const projectNames = projects.map((project) => {
+      return project.name;
+    });
 
-            workspaceIdToNameMatcher[name] = id;
+    if (projectNames && projectNames.length > 1) {
+      const selectedProjects = await askCheckbox(
+        projectNames,
+        "What projects should be included?"
+      );
 
-            return name;
-        })
-
-        if (workspaces && workspaces.length > 1) {
-            const selectedWorkspace = await cliClient.askList(
-                workspaceNames,
-                'You have several workspaces. Please select the required workspace to generate report from:'
-            );
-
-            return workspaceIdToNameMatcher[selectedWorkspace];
-        }
-
-        return workspaces[0].id;
-    }
-
-    async getProjects(workspace) {
-        const projects = await this.requestProjects(workspace);
-
-        const projectNames = projects.map((project) => {
-            return project.name
-        });
-
-        if (projectNames && projectNames.length > 1) {
-            const selectedProjects = await cliClient.askCheckbox(
-                projectNames,
-                'What projects should be included?'
-            );
-
-            if (selectedProjects && selectedProjects.length) {
-                return selectedProjects;
-            } else {
-                return projectNames;
-            }
-        }
-
+      if (selectedProjects && selectedProjects.length) {
+        return selectedProjects;
+      } else {
         return projectNames;
+      }
     }
 
-    async getTasks({
-        startDate,
-        endDate,
-    }) {
-        const workspace = await this.getWorkspaceId();
-        const projects = await this.getProjects(workspace);
+    return projectNames;
+  }
 
-        const since = formatDate(startDate);
-        const until = formatDate(endDate);
+  async getTasks({ startDate, endDate }) {
+    const workspace = await this.getWorkspaceId();
+    const projects = await this.getProjects(workspace);
 
-        let accumulatedData = [];
-        let pageIndex = 1;
-        let totalCount = 0;
+    const since = formatDate(startDate);
+    const until = formatDate(endDate);
 
-        do {
-            const data = await this.requestDetailedReport({
-                since,
-                until,
-                workspace,
-                page: pageIndex,
-            });
+    let accumulatedData = [];
+    let pageIndex = 1;
+    let totalCount = 0;
 
-            totalCount += data.data.length;
-
-            accumulatedData = accumulatedData.concat(data.data || []);
-
-            if (totalCount >= data.total_count) {
-                break;
-            }
-
-            pageIndex++;
-        } while (true);
-
-        return this.filterByProjectNames(accumulatedData, projects);
-    }
-
-    filterByProjectNames(tasks, projectNames) {
-        if (projectNames &&
-            projectNames.length &&
-            tasks &&
-            tasks.length
-        ) {
-            return tasks.filter(task => {
-                return projectNames.some((projectName) => {
-                    return task.project === projectName;
-                });
-            });
-        }
-
-        return tasks;
-    }
-
-    async requestDetailedReport({
+    do {
+      const data = await this.requestDetailedReport({
         since,
         until,
         workspace,
-        page,
-    }) {
-        return this.requestTogglApi(
-            'https://toggl.com/reports/api/v2/details', {
-                page,
-                since,
-                until,
-                workspace_id: workspace,
-            }
-        );
+        page: pageIndex,
+      });
+
+      totalCount += data.data.length;
+
+      accumulatedData = accumulatedData.concat(data.data || []);
+
+      if (totalCount >= data.total_count) {
+        break;
+      }
+
+      pageIndex++;
+    } while (true);
+
+    return this.filterByProjectNames(accumulatedData, projects);
+  }
+
+  filterByProjectNames(tasks, projectNames) {
+    if (projectNames && projectNames.length && tasks && tasks.length) {
+      return tasks.filter((task) => {
+        return projectNames.some((projectName) => {
+          return task.project === projectName;
+        });
+      });
     }
 
-    async requestWorkspaces() {
-        return this.requestTogglApi('https://toggl.com/api/v8/workspaces');
-    }
+    return tasks;
+  }
 
-    async requestProjects(workspace) {
-        const uri = `https://www.toggl.com/api/v8/workspaces/${workspace}/projects`
+  async requestDetailedReport({ since, until, workspace, page }) {
+    return this.requestTogglApi("https://toggl.com/reports/api/v2/details", {
+      page,
+      since,
+      until,
+      workspace_id: workspace,
+    });
+  }
 
-        return this.requestTogglApi(uri);
-    }
+  async requestWorkspaces() {
+    return this.requestTogglApi("https://toggl.com/api/v8/workspaces");
+  }
 
-    async requestTogglApi(uri, queryOptions = {}) {
-        const options = {
-            uri,
-            qs: {
-                user_agent: 'cli_toggle_to_ets',
-                ...queryOptions,
-            },
-            auth: {
-                user: this.token,
-                pass: 'api_token'
-            },
-            json: true
-        };
+  async requestProjects(workspace) {
+    const uri = `https://www.toggl.com/api/v8/workspaces/${workspace}/projects`;
 
-        return requestModule(options);
-    }
+    return this.requestTogglApi(uri);
+  }
+
+  async requestTogglApi(uri, queryOptions = {}) {
+    const options = {
+      uri,
+      qs: {
+        user_agent: "cli_toggle_to_ets",
+        ...queryOptions,
+      },
+      auth: {
+        user: this.token,
+        pass: "api_token",
+      },
+      json: true,
+    };
+
+    return request(options);
+  }
 }
-
-module.exports = TogglApi;
