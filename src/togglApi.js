@@ -4,6 +4,8 @@ import { askCheckbox, askList } from "./cliClient.js";
 import { formatDate } from "./dateUtils.js";
 
 export class TogglApi {
+  #apiUrl = "https://api.track.toggl.com";
+
   constructor({ token }) {
     this.token = token;
   }
@@ -102,7 +104,7 @@ export class TogglApi {
   }
 
   async requestDetailedReport({ since, until, workspace, page }) {
-    return this.requestTogglApi("https://toggl.com/reports/api/v2/details", {
+    return this.requestTogglApi(this.getDetailsApiUrl(), {
       page,
       since,
       until,
@@ -110,14 +112,24 @@ export class TogglApi {
     });
   }
 
+  getDetailsApiUrl() {
+    return `${this.#apiUrl}/reports/api/v2/details`;
+  }
+
   async requestWorkspaces() {
-    return this.requestTogglApi("https://toggl.com/api/v8/workspaces");
+    return this.requestTogglApi(this.getWorkspacesApiUrl());
+  }
+
+  getWorkspacesApiUrl() {
+    return `${this.#apiUrl}/api/v8/workspaces`;
+  }
+
+  getProjectsApiUrl(workspace) {
+    return `${this.#apiUrl}/api/v8/workspaces/${workspace}/projects`;
   }
 
   async requestProjects(workspace) {
-    const uri = `https://www.toggl.com/api/v8/workspaces/${workspace}/projects`;
-
-    return this.requestTogglApi(uri);
+    return this.requestTogglApi(this.getProjectsApiUrl(workspace));
   }
 
   async requestTogglApi(uri, queryOptions = {}) {
