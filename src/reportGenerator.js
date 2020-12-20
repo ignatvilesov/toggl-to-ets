@@ -23,7 +23,7 @@ export async function generate({ token, start, end }) {
   try {
     if (!token) {
       throw new Error(
-        `Token isn't specified. To get token go to Profile Settings section in Toggl UI.`
+        `Token isn't specified. To get token go to Profile Settings section in Toggl Track UI.`
       );
     }
 
@@ -72,7 +72,8 @@ export async function generate({ token, start, end }) {
 
     const excelGenerator = new ExcelGenerator();
 
-    const outputFilePath = joinPath(process.cwd(), "ets_filled.xlsx");
+    const reportName = getReportName(startDate, endDate);
+    const outputFilePath = joinPath(process.cwd(), reportName);
 
     await excelGenerator.generate({
       outputFilePath,
@@ -81,7 +82,7 @@ export async function generate({ token, start, end }) {
 
     console.log(
       colors.info(
-        `Toggl to ETS import completed. You can find the filled reports here: ${outputFilePath}`
+        `Toggl Track to ETS import completed. You can find a report here: ${outputFilePath}`
       )
     );
   } catch (err) {
@@ -95,4 +96,15 @@ export async function generate({ token, start, end }) {
 
     process.exit(1);
   }
+}
+
+function getReportName(startDate, endDate) {
+  const name = [
+    "ets",
+    "report",
+    formatDate(startDate),
+    formatDate(endDate),
+  ].join("_");
+
+  return `${name}.xlsx`;
 }
