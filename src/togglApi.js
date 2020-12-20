@@ -79,7 +79,7 @@ export class TogglApi {
 
       totalCount += data.data.length;
 
-      accumulatedData = accumulatedData.concat(data.data || []);
+      accumulatedData = [...accumulatedData, ...this.parseTasks(data.data)];
 
       if (totalCount >= data.total_count) {
         break;
@@ -89,6 +89,15 @@ export class TogglApi {
     } while (true);
 
     return this.filterByProjectNames(accumulatedData, projects);
+  }
+
+  parseTasks(tasks = []) {
+    return tasks.map((task) => ({
+      ...task,
+      start: new Date(task.start),
+      end: new Date(task.end),
+      updated: new Date(task.updated),
+    }));
   }
 
   filterByProjectNames(tasks, projectNames) {

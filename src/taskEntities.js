@@ -50,8 +50,8 @@ export class TaskEntities {
             ...task,
             name,
             duration: flooredDuration,
-            startDate: new Date(task.start),
-            endDate: new Date(task.end),
+            startDate: task.start,
+            endDate: task.end,
           };
         });
 
@@ -84,7 +84,7 @@ export class TaskEntities {
 
   getGroupedTasks() {
     return groupBy(this.tasks, (task) => {
-      const formattedDate = formatDate(new Date(task.start));
+      const formattedDate = formatDate(task.start);
 
       return `${task.client}-${task.project}-${formattedDate}`;
     });
