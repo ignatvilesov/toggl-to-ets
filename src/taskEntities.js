@@ -1,4 +1,5 @@
-import _ from "lodash";
+import floor from "lodash.floor";
+import groupBy from "lodash.groupby";
 
 import { formatDate } from "./dateUtils.js";
 
@@ -68,7 +69,7 @@ export class TaskEntities {
       this.spreadDuration(balancedTasks, unconsideredDurationAfterSpread);
     }
 
-    const groupedByDuration = _.groupBy(balancedTasks, (task) => {
+    const groupedByDuration = groupBy(balancedTasks, (task) => {
       return task.duration >= this.step;
     });
 
@@ -78,11 +79,11 @@ export class TaskEntities {
   }
 
   floor(value) {
-    return _.floor(value, 1);
+    return floor(value, 1);
   }
 
   getGroupedTasks() {
-    return _.groupBy(this.tasks, (task) => {
+    return groupBy(this.tasks, (task) => {
       const formattedDate = formatDate(new Date(task.start));
 
       return `${task.client}-${task.project}-${formattedDate}`;
