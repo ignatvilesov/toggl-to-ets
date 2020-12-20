@@ -58,11 +58,13 @@ export async function generate({ token, start, end }) {
       );
 
       unconsideredTasks.forEach((task) => {
+        console.log(task);
+
         console.log(
-          color.info(
-            `${task.client} => ${task.project} => [${formatDate(
-              task.startDate
-            )}, ${formatDate(task.endDate)}] => ${task.description}`
+          colors.info(
+            `${task.client} | ${task.project} | ${formatDate(
+              task.start
+            )} - ${formatDate(task.end)} | ${task.description}`
           )
         );
       });
