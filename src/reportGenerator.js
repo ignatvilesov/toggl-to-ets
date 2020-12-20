@@ -58,8 +58,6 @@ export async function generate({ token, start, end }) {
       );
 
       unconsideredTasks.forEach((task) => {
-        console.log(task);
-
         console.log(
           colors.info(
             `${task.client} | ${task.project} | ${formatDate(

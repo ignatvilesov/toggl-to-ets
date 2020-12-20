@@ -114,16 +114,21 @@ export class ExcelGenerator {
   }
 
   addTasks(worksheet, tasks) {
-    for (let task of tasks) {
-      const row = worksheet.addRow([
-        task.name,
-        task.duration,
-        task.description,
-        task.startDate,
-      ]);
+    Array.from(tasks)
+      .slice()
+      .sort(
+        (firstTask, secondTask) => firstTask.startDate - secondTask.startDate
+      )
+      .forEach((task) => {
+        const row = worksheet.addRow([
+          task.name,
+          task.duration,
+          task.description,
+          task.startDate,
+        ]);
 
-      this.applyTaskStyles(row);
-    }
+        this.applyTaskStyles(row);
+      });
   }
 
   applyTaskStyles(element) {

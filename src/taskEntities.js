@@ -1,4 +1,4 @@
-import floor from "lodash.floor";
+import round from "lodash.round";
 import groupBy from "lodash.groupby";
 
 import { formatDate } from "./dateUtils.js";
@@ -36,7 +36,7 @@ export class TaskEntities {
         .map((task) => {
           const originalDuration = task.dur / 1000 / 60 / 60;
 
-          const flooredDuration = this.floor(originalDuration);
+          const flooredDuration = round(originalDuration, 1);
 
           unconsideredDurationSumForTaskGroup +=
             originalDuration - flooredDuration;
@@ -53,21 +53,20 @@ export class TaskEntities {
             startDate: task.start,
             endDate: task.end,
           };
-        });
+        })
 
-      const sortedTasks = tasks.slice().sort((a, b) => a.duration - b.duration);
-
-      unconsideredDurationAfterSpread += this.spreadDuration(
-        sortedTasks,
+      unconsideredDurationAfterSpread += this.balanceTaskDurations(
+        tasks,
         unconsideredDurationSumForTaskGroup
       );
 
       balancedTasks.push(...tasks);
     });
 
-    if (unconsideredDurationAfterSpread >= this.step) {
-      this.spreadDuration(balancedTasks, unconsideredDurationAfterSpread);
-    }
+    this.balanceTaskDurations(
+      balancedTasks,
+      unconsideredDurationAfterSpread
+    );
 
     const groupedByDuration = groupBy(balancedTasks, (task) => {
       return task.duration >= this.step;
@@ -76,10 +75,6 @@ export class TaskEntities {
     this.tasks = groupedByDuration[true] || [];
 
     return groupedByDuration[false] || [];
-  }
-
-  floor(value) {
-    return floor(value, 1);
   }
 
   getGroupedTasks() {
@@ -105,27 +100,42 @@ export class TaskEntities {
    *
    * It has side effect due to performance reasons.
    */
-  spreadDuration(tasks, unconsideredDuration) {
-    let flooredUnconsideredDuration = this.floor(unconsideredDuration);
-    let unconsideredDurationCopied = unconsideredDuration;
+  balanceTaskDurations(tasks, leftDuration) {
+    const sortedTasks = tasks.sort((a, b) => b.duration - a.duration);
+
+    const sign = Math.sign(leftDuration);
+    const signedStep = this.step * sign;
+
+    const doubledStep = this.step * 2;
+
+    let currentLeftDuration = leftDuration;
+    let sumDuration = 0;
+
+    let allowedNumberOfLoops = 10;
 
     // this loop below has side effects due to performance optimizations
     for (
       let taskIndex = 0;
-      flooredUnconsideredDuration >= this.step;
+      Math.abs(currentLeftDuration) >= this.step && allowedNumberOfLoops > 0;
       taskIndex++
     ) {
-      if (taskIndex >= tasks.length) {
+      if (taskIndex >= sortedTasks.length) {
         taskIndex = 0;
+        allowedNumberOfLoops--;
       }
 
-      tasks[taskIndex].duration += this.step;
+      const currentDuration = sortedTasks[taskIndex].duration;
 
-      flooredUnconsideredDuration -= this.step;
-      unconsideredDurationCopied -= this.step;
+      if (currentDuration < doubledStep && sign < 0) {
+        continue;
+      }
+
+      sortedTasks[taskIndex].duration += signedStep;
+      sumDuration += signedStep;
+      currentLeftDuration -= signedStep;
     }
 
-    return unconsideredDurationCopied;
+    return leftDuration - sumDuration;
   }
 
   [Symbol.iterator]() {
