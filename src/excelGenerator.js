@@ -6,55 +6,59 @@ export class ExcelGenerator {
 
     const worksheet = workbook.addWorksheet("Efforts");
 
-    // Adds a header
-    worksheet.addRow([
-      "Project-Task",
-      "Effort",
-      "Description",
-      "Started Date",
-      "Completion Date",
-    ]);
+    this.addReportTypeCell(worksheet);
+    this.addHeader(worksheet);
+    this.addTasks(worksheet, tasks);
+
+    await workbook.xlsx.writeFile(outputFilePath);
+  }
+
+  addReportTypeCell(worksheet) {
+    worksheet.mergeCells("A1:D1");
+
+    const reportTypeCell = worksheet.getCell("A1");
+
+    reportTypeCell.value = "ETSI_OneDayTaskReportTemplate";
+
+    this.applyReportTypeCellStyles(reportTypeCell);
+  }
+
+  applyReportTypeCellStyles(element) {
+    element.font = {
+      name: "Arial",
+      color: {
+        argb: "00000000",
+      },
+      family: 2,
+      size: 10,
+    };
+
+    element.alignment = {
+      vertical: "middle",
+      horizontal: "center",
+    };
+  }
+
+  addHeader(worksheet) {
+    worksheet.addRow(["Project-Task", "Effort", "Description", "Date"]);
 
     worksheet.getColumn(1).width = 24;
     worksheet.getColumn(2).width = 12;
     worksheet.getColumn(3).width = 78;
     worksheet.getColumn(4).width = 16;
-    worksheet.getColumn(5).width = 16;
 
     const headerRow = worksheet.lastRow;
 
     headerRow.height = 25;
 
     [
-      worksheet.getCell("A1"),
-      worksheet.getCell("B1"),
-      worksheet.getCell("C1"),
-      worksheet.getCell("D1"),
-      worksheet.getCell("E1"),
+      worksheet.getCell("A2"),
+      worksheet.getCell("B2"),
+      worksheet.getCell("C2"),
+      worksheet.getCell("D2"),
     ].forEach((element) => {
       this.applyHeaderStyles(element);
     });
-
-    for (let task of tasks) {
-      worksheet.addRow([
-        task.name,
-        task.duration,
-        task.description,
-        task.startDate,
-        task.endDate,
-      ]);
-
-      worksheet.lastRow.font = {
-        name: "Tahoma",
-        color: {
-          argb: "00000000",
-        },
-        family: 2,
-        size: 10,
-      };
-    }
-
-    await workbook.xlsx.writeFile(outputFilePath);
   }
 
   applyHeaderStyles(element) {
@@ -106,6 +110,30 @@ export class ExcelGenerator {
           argb: "00FFFFFF",
         },
       },
+    };
+  }
+
+  addTasks(worksheet, tasks) {
+    for (let task of tasks) {
+      const row = worksheet.addRow([
+        task.name,
+        task.duration,
+        task.description,
+        task.startDate,
+      ]);
+
+      this.applyTaskStyles(row);
+    }
+  }
+
+  applyTaskStyles(element) {
+    element.font = {
+      name: "Tahoma",
+      color: {
+        argb: "00000000",
+      },
+      family: 2,
+      size: 10,
     };
   }
 }
